@@ -1,9 +1,14 @@
 package com.github.gfx.rxjavaexample.app;
 
 import android.app.Activity;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.util.Log;
+
+import rx.Observable;
+import rx.Subscriber;
+import rx.functions.Action1;
+import rx.functions.Func1;
 
 
 public class MainActivity extends Activity {
@@ -12,25 +17,47 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... params) {
+                hello();
+
+                return null;
+            }
+        }.execute();
     }
 
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
+    public static void hello(String... names) {
+        Observable.create(new Observable.OnSubscribe<String>() {
+            @Override
+            public void call(Subscriber<? super String> subscriber) {
+                try {
+                    subscriber.onNext("foo");
+                    Thread.sleep(1000);
+                    subscriber.onNext("bar");
+                    Thread.sleep(2000);
+                    subscriber.onNext("baz");
+                    Thread.sleep(3000);
+                    subscriber.onError(new Exception("error!"));
+                } catch (InterruptedException e) {
+                    subscriber.onError(e);
+                }
+            }
+        }).onErrorReturn(new Func1<Throwable, String>() {
+            @Override
+            public String call(Throwable throwable) {
+                Log.wtf("XXX", throwable);
+                return null;
+            }
+        }).subscribe(new Action1<String>() {
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
+            @Override
+            public void call(String s) {
+                Log.d("XXX", "Hello " + s + "!");
+            }
+
+        });
     }
 }
